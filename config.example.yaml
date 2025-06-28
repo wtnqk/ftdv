@@ -1,0 +1,125 @@
+# ftdv Configuration Example
+# Save this as ~/.config/ftdv/config.yaml
+
+# Git paging configuration (inspired by lazygit)
+git:
+  paging:
+    # Choose ONE of the following diff tools:
+    
+    # === OPTION 1: Delta (syntax highlighter with side-by-side) ===
+    # Recommended for general use
+    # pager: "delta --dark --paging=never --line-numbers --side-by-side -w={{diffAreaWidth}}"
+    # colorArg: "always"
+    
+    # === OPTION 2: bat (syntax highlighting file viewer) ===
+    # Simple and fast
+    # pager: "bat --style=plain --color=always --terminal-width={{diffAreaWidth}}"
+    # colorArg: "always"
+    
+    # === OPTION 3: ydiff (terminal side-by-side diff viewer) ===
+    # Lightweight side-by-side viewer
+    # pager: "ydiff -p cat --color=always --theme=dark --width={{diffAreaWidth}}"
+    # colorArg: "always"
+    
+    # === OPTION 4: difftastic (structural diff tool) ===
+    # IMPORTANT: Use externalDiffCommand, not pager, for difftastic
+    # Advanced structural analysis - works with Git's external diff mechanism
+    externalDiffCommand: "difft --color=always --background dark --width {{diffAreaWidth}}"
+    colorArg: "always"
+    
+    # === Template Variables ===
+    # Available in both pager and externalDiffCommand strings:
+    # {{width}} = full terminal width
+    # {{columnWidth}} = terminal_width/2 - 6 (lazygit compatible)
+    # {{diffAreaWidth}} = ftdv's diff area width (80% of terminal) - RECOMMENDED
+    # {{diffColumnWidth}} = side-by-side column width in diff area
+    
+    # Use system-configured pager from git config
+    useConfig: false
+
+# Theme configuration
+theme:
+  name: dark
+  colors:
+    # File tree colors
+    tree_line: dark_gray          # Tree structure lines (├, │, ╰)
+    tree_selected_bg: "#323264"   # Selected item background (hex color supported)
+    tree_selected_fg: yellow      # Selected item foreground
+    tree_directory: blue          # Directory names
+    tree_file: white              # File names
+    
+    # File status colors (for diff statistics)
+    status_added: green           # Added lines (+)
+    status_removed: red           # Removed lines (-)
+    status_modified: yellow       # Modified files
+    
+    # UI chrome colors
+    border: dark_gray             # Normal border color
+    border_focused: cyan          # Focused panel border
+    title: cyan                   # Panel titles
+    status_bar_bg: dark_gray      # Status bar background
+    status_bar_fg: white          # Status bar text
+    
+    # Text colors
+    text_primary: white           # Main text
+    text_secondary: gray          # Secondary text
+    text_dim: dark_gray           # Dimmed text
+    
+    # Background colors
+    background: black             # Main background
+
+# ===============================================
+# Alternative Configurations for Different Tools
+# ===============================================
+
+# === Delta Variations ===
+# git:
+#   paging:
+#     pager: "delta --dark --paging=never --line-numbers --side-by-side -w={{width}}"    # Full terminal width
+#     pager: "delta --light --paging=never --line-numbers --side-by-side -w={{diffAreaWidth}}"  # Light theme
+#     colorArg: "always"
+
+# === Difftastic Variations ===
+# git:
+#   paging:
+#     externalDiffCommand: "difft --color=always --display inline --width {{diffAreaWidth}}"           # Inline mode
+#     externalDiffCommand: "difft --color=always --display side-by-side-show-both --width {{width}}"   # Always show both columns
+#     externalDiffCommand: "difft --color=always --syntax-highlight off --width {{diffAreaWidth}}"     # No syntax highlighting
+#     colorArg: "always"
+
+# === ydiff Variations ===
+# git:
+#   paging:
+#     pager: "ydiff -p cat --color=always --theme=light --width={{diffAreaWidth}}"       # Light theme
+#     pager: "ydiff -p cat --color=always --theme=dark --width={{diffAreaWidth}} --wrap" # With line wrapping
+#     colorArg: "always"
+
+# === diff-so-fancy (Git diff beautifier) ===
+# git:
+#   paging:
+#     pager: "diff-so-fancy"
+#     colorArg: "always"
+
+# === Multiple theme examples ===
+# Light theme example:
+# theme:
+#   name: light
+#   colors:
+#     tree_selected_bg: "#e6e6fa"
+#     tree_selected_fg: black
+#     tree_directory: blue
+#     tree_file: black
+#     status_added: green
+#     status_removed: red
+#     border: gray
+#     border_focused: blue
+#     text_primary: black
+#     background: white
+
+# Available color names:
+# black, red, green, yellow, blue, magenta, cyan, white
+# gray (or grey), dark_gray (or dark_grey)
+# light_red, light_green, light_yellow, light_blue, light_magenta, light_cyan
+# reset
+# color0-color255 (e.g., color8, color231)
+# #RRGGBB hex colors (e.g., #ff0000 for red, #323264 for dark blue)
