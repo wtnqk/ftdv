@@ -1,23 +1,23 @@
+use crate::theme::Theme;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use crate::theme::Theme;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GitPagingConfig {
     /// Regular pager that processes git diff output (e.g., delta, diff-so-fancy)
     #[serde(default)]
     pub pager: String,
-    
+
     /// External diff command that replaces git's diff algorithm (e.g., difftastic)
     #[serde(default, rename = "externalDiffCommand")]
     pub external_diff_command: String,
-    
+
     /// Color argument passed to git diff (always/never/auto)
     #[serde(default = "default_color_arg")]
     pub color_arg: String,
-    
+
     /// Use system-configured pager from git config
     #[serde(default)]
     pub use_config: bool,
@@ -43,12 +43,12 @@ impl GitPagingConfig {
     pub fn has_external_diff_command(&self) -> bool {
         !self.external_diff_command.trim().is_empty()
     }
-    
+
     /// Check if regular pager is configured
     pub fn has_pager(&self) -> bool {
         !self.pager.trim().is_empty()
     }
-    
+
     /// Get the effective diff command (external diff takes precedence)
     pub fn get_effective_command(&self) -> DiffCommandType {
         if self.has_external_diff_command() {
@@ -104,11 +104,11 @@ pub struct GitConfig {
 pub struct Config {
     #[serde(default)]
     pub git: GitConfig,
-    
+
     /// Legacy diff_command field for backward compatibility
     #[serde(skip_serializing_if = "Option::is_none")]
     pub diff_command: Option<DiffCommand>,
-    
+
     #[serde(default)]
     pub theme: Theme,
 }
@@ -118,7 +118,7 @@ impl Config {
     pub fn get_diff_command_type(&self) -> DiffCommandType {
         // Check new git.paging configuration first
         let effective_command = self.git.paging.get_effective_command();
-        
+
         match effective_command {
             DiffCommandType::GitDefault => {
                 // Fall back to legacy diff_command if available
@@ -141,18 +141,18 @@ impl Config {
             _ => effective_command,
         }
     }
-    
+
     /// Get display name for the current diff configuration
     pub fn get_diff_display_name(&self) -> String {
         match self.get_diff_command_type() {
             DiffCommandType::GitDefault => "git diff".to_string(),
             DiffCommandType::Pager(ref cmd) => {
                 let tool_name = cmd.split_whitespace().next().unwrap_or("pager");
-                format!("{} (pager)", tool_name)
+                format!("{tool_name} (pager)")
             }
             DiffCommandType::External(ref cmd) => {
                 let tool_name = cmd.split_whitespace().next().unwrap_or("external");
-                format!("{} (external)", tool_name)
+                format!("{tool_name} (external)")
             }
         }
     }
@@ -180,7 +180,7 @@ impl Config {
         }
 
         let contents = fs::read_to_string(config_path)
-            .with_context(|| format!("Failed to read config file: {:?}", config_path))?;
+            .with_context(|| format!("Failed to read config file: {config_path:?}"))?;
 
         let config: Config =
             serde_yaml::from_str(&contents).with_context(|| "Failed to parse config file")?;
@@ -193,13 +193,13 @@ impl Config {
 
         if let Some(parent) = config_path.parent() {
             fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create config directory: {:?}", parent))?;
+                .with_context(|| format!("Failed to create config directory: {parent:?}"))?;
         }
 
         let yaml = serde_yaml::to_string(self).with_context(|| "Failed to serialize config")?;
 
         fs::write(&config_path, yaml)
-            .with_context(|| format!("Failed to write config file: {:?}", config_path))?;
+            .with_context(|| format!("Failed to write config file: {config_path:?}"))?;
 
         Ok(())
     }
@@ -231,12 +231,15 @@ mod tests {
         let mut config = Config::default();
         config.git.paging.pager = "delta --dark".to_string();
         config.git.paging.color_arg = "always".to_string();
-        
+
         let yaml = serde_yaml::to_string(&config).unwrap();
         let deserialized: Config = serde_yaml::from_str(&yaml).unwrap();
 
         assert_eq!(config.git.paging.pager, deserialized.git.paging.pager);
-        assert_eq!(config.git.paging.color_arg, deserialized.git.paging.color_arg);
+        assert_eq!(
+            config.git.paging.color_arg,
+            deserialized.git.paging.color_arg
+        );
     }
 
     #[test]
@@ -259,23 +262,26 @@ mod tests {
         let yaml = serde_yaml::to_string(&config).unwrap();
         let deserialized: Config = serde_yaml::from_str(&yaml).unwrap();
 
-        assert_eq!(deserialized.git.paging.external_diff_command, "difft --color=always");
+        assert_eq!(
+            deserialized.git.paging.external_diff_command,
+            "difft --color=always"
+        );
         assert!(deserialized.git.paging.has_external_diff_command());
     }
 
     #[test]
     fn test_diff_command_type_precedence() {
         let mut config = Config::default();
-        
+
         // Test external diff takes precedence over pager
         config.git.paging.pager = "delta".to_string();
         config.git.paging.external_diff_command = "difft".to_string();
-        
+
         match config.get_diff_command_type() {
             DiffCommandType::External(cmd) => assert_eq!(cmd, "difft"),
             _ => panic!("Expected external diff command"),
         }
-        
+
         // Test pager when no external diff
         config.git.paging.external_diff_command = String::new();
         match config.get_diff_command_type() {
@@ -301,9 +307,11 @@ mod tests {
         let loaded_config = Config::load()?;
 
         assert_eq!(config.git.paging.pager, loaded_config.git.paging.pager);
-        assert_eq!(config.git.paging.color_arg, loaded_config.git.paging.color_arg);
+        assert_eq!(
+            config.git.paging.color_arg,
+            loaded_config.git.paging.color_arg
+        );
 
         Ok(())
     }
 }
-

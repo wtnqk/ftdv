@@ -195,7 +195,7 @@ impl App {
                     }
                     Err(e) => {
                         // Log error but continue with original output
-                        eprintln!("Warning: Failed to process with diff tool: {}", e);
+                        eprintln!("Warning: Failed to process with diff tool: {e}");
                     }
                 }
             }
@@ -425,7 +425,7 @@ impl App {
 
         // Build git command using external diff mechanism (like lazygit)
         let mut cmd = Command::new("git");
-        let external_diff_config = format!("diff.external={}", final_command_str);
+        let external_diff_config = format!("diff.external={final_command_str}");
 
         cmd.args([
             "-c",
@@ -541,7 +541,7 @@ impl App {
                             .persistence_manager
                             .save_check_state(diff_key, is_now_checked)
                         {
-                            eprintln!("Warning: Failed to save check state: {}", e);
+                            eprintln!("Warning: Failed to save check state: {e}");
                         }
                     }
                 }
@@ -682,7 +682,7 @@ impl App {
                                 self.diff_output = processed_output;
                             }
                             Err(e) => {
-                                eprintln!("Warning: Failed to refresh diff with width: {}", e);
+                                eprintln!("Warning: Failed to refresh diff with width: {e}");
                             }
                         }
                     }
@@ -723,7 +723,7 @@ impl App {
                                 self.diff_output = processed_output;
                             }
                             Err(e) => {
-                                eprintln!("Warning: Failed to refresh diff with area width: {}", e);
+                                eprintln!("Warning: Failed to refresh diff with area width: {e}");
                             }
                         }
                     }
@@ -863,7 +863,7 @@ fn main() -> Result<()> {
             return Ok(());
         }
         OperationMode::Invalid { reason } => {
-            eprintln!("Error: {}", reason);
+            eprintln!("Error: {reason}");
             std::process::exit(1);
         }
         _ => {}
@@ -884,8 +884,8 @@ fn main() -> Result<()> {
     // Get diff data based on operation mode
     let is_stdin_terminal = io::IsTerminal::is_terminal(&io::stdin());
     if cli.verbose {
-        eprintln!("Debug: stdin is terminal: {}", is_stdin_terminal);
-        eprintln!("Debug: operation mode: {:?}", operation_mode);
+        eprintln!("Debug: stdin is terminal: {is_stdin_terminal}");
+        eprintln!("Debug: operation mode: {operation_mode:?}");
     }
 
     let file_diffs = if !is_stdin_terminal {
@@ -934,7 +934,7 @@ fn main() -> Result<()> {
     terminal.show_cursor()?;
 
     if let Err(err) = res {
-        eprintln!("{:?}", err)
+        eprintln!("{err:?}")
     }
 
     Ok(())

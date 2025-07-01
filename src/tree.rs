@@ -10,9 +10,9 @@ pub struct FileTreeItem {
     pub file_diff: Option<FileDiff>,
     pub is_last_child: bool,
     pub parent_is_last: Vec<bool>, // Track if each ancestor is the last child
-    pub is_expanded: bool, // Track if directory is expanded
+    pub is_expanded: bool,         // Track if directory is expanded
     // Directory statistics (only used when directory is collapsed)
-    pub dir_file_count: usize, // Total files in this directory (recursive)
+    pub dir_file_count: usize,  // Total files in this directory (recursive)
     pub dir_added_lines: usize, // Total added lines in this directory (recursive)
     pub dir_removed_lines: usize, // Total removed lines in this directory (recursive)
 }
@@ -37,7 +37,10 @@ impl FileTreeBuilder {
         Self::build_file_tree_with_collapsed(file_diffs, &HashSet::new())
     }
 
-    pub fn build_file_tree_with_collapsed(file_diffs: &[FileDiff], collapsed_dirs: &HashSet<String>) -> Vec<FileTreeItem> {
+    pub fn build_file_tree_with_collapsed(
+        file_diffs: &[FileDiff],
+        collapsed_dirs: &HashSet<String>,
+    ) -> Vec<FileTreeItem> {
         // First, build a true tree structure like diffnav does
         let root = Self::build_tree_structure(file_diffs);
 
@@ -94,10 +97,10 @@ impl FileTreeBuilder {
             }
 
             if dir_a != "." && dir_b != "." {
-                if dir_a.starts_with(&format!("{}/", dir_b)) {
+                if dir_a.starts_with(&format!("{dir_b}/")) {
                     return std::cmp::Ordering::Less;
                 }
-                if dir_b.starts_with(&format!("{}/", dir_a)) {
+                if dir_b.starts_with(&format!("{dir_a}/")) {
                     return std::cmp::Ordering::Greater;
                 }
             }
@@ -113,7 +116,7 @@ impl FileTreeBuilder {
 
         // Sort all children recursively
         Self::sort_tree_children(&mut root);
-        
+
         // Calculate directory statistics
         Self::calculate_directory_stats(&mut root);
 
@@ -133,7 +136,7 @@ impl FileTreeBuilder {
                 } else {
                     (0, 0)
                 };
-                
+
                 current.children.push(TreeNode {
                     name: part.to_string(),
                     full_path: path.to_string(),
@@ -186,17 +189,17 @@ impl FileTreeBuilder {
             Self::sort_tree_children(child);
         }
     }
-    
+
     fn calculate_directory_stats(node: &mut TreeNode) -> (usize, usize, usize) {
         if !node.is_directory {
             // For files, return their own stats
             return (node.file_count, node.added_lines, node.removed_lines);
         }
-        
+
         let mut total_files = 0;
         let mut total_added = 0;
         let mut total_removed = 0;
-        
+
         // Recursively calculate stats for all children
         for child in &mut node.children {
             let (files, added, removed) = Self::calculate_directory_stats(child);
@@ -204,12 +207,12 @@ impl FileTreeBuilder {
             total_added += added;
             total_removed += removed;
         }
-        
+
         // Update this directory's stats
         node.file_count = total_files;
         node.added_lines = total_added;
         node.removed_lines = total_removed;
-        
+
         (total_files, total_added, total_removed)
     }
 
@@ -242,7 +245,7 @@ impl FileTreeBuilder {
 
         // Process children only if this directory is expanded (or if this is root)
         let should_show_children = depth == 0 || !collapsed_dirs.contains(&node.full_path);
-        
+
         if should_show_children {
             for (i, child) in node.children.iter().enumerate() {
                 let is_last = i == node.children.len() - 1;
@@ -255,7 +258,13 @@ impl FileTreeBuilder {
                     }
                 }
 
-                Self::flatten_tree_with_collapsed(child, depth + 1, parent_is_last, result, collapsed_dirs);
+                Self::flatten_tree_with_collapsed(
+                    child,
+                    depth + 1,
+                    parent_is_last,
+                    result,
+                    collapsed_dirs,
+                );
             }
         }
 

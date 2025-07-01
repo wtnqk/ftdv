@@ -1,4 +1,3 @@
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
@@ -23,14 +22,17 @@ impl FileDiff {
     /// Get appropriate nerd font icon based on file extension
     pub fn get_file_icon(&self) -> char {
         let filename = if self.filename.contains('/') {
-            self.filename.split('/').next_back().unwrap_or(&self.filename)
+            self.filename
+                .split('/')
+                .next_back()
+                .unwrap_or(&self.filename)
         } else {
             &self.filename
         };
-        
+
         crate::icons::get_file_icon(filename)
     }
-    
+
     /// Get diff statistics as string with icons
     pub fn diff_stats(&self) -> String {
         format!(" +{} -{}", self.added_lines, self.removed_lines)
@@ -55,12 +57,12 @@ impl DiffParser {
         if !line.starts_with("index ") {
             return None;
         }
-        
+
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() < 2 {
             return None;
         }
-        
+
         let hash_part = parts[1];
         if let Some(dot_pos) = hash_part.find("..") {
             let from_hash = hash_part[..dot_pos].to_string();
@@ -70,12 +72,12 @@ impl DiffParser {
             None
         }
     }
-    
+
     pub fn parse(diff_content: &str) -> Vec<FileDiff> {
         let mut file_diffs = Vec::new();
         let mut current_file: Option<FileDiff> = None;
         let mut current_content = String::new();
-        
+
         for line in diff_content.lines() {
             if line.starts_with("diff --git") {
                 // Save previous file if exists
@@ -84,15 +86,15 @@ impl DiffParser {
                     Self::calculate_diff_stats(&mut file, &current_content);
                     file_diffs.push(file);
                 }
-                
+
                 // Extract filename from diff --git a/file b/file
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 4 {
                     let filename = parts[2].trim_start_matches("a/").to_string();
                     current_file = Some(FileDiff {
                         filename: filename.clone(),
-                        old_path: Some(format!("a/{}", filename)),
-                        new_path: Some(format!("b/{}", filename)),
+                        old_path: Some(format!("a/{filename}")),
+                        new_path: Some(format!("b/{filename}")),
                         content: String::new(),
                         added_lines: 0,
                         removed_lines: 0,
@@ -103,7 +105,9 @@ impl DiffParser {
             } else if line.starts_with("index ") {
                 // Parse index line to extract commit hashes
                 let current_hashes = Self::parse_index_line(line);
-                if let (Some(file), Some((from_hash, to_hash))) = (&mut current_file, &current_hashes) {
+                if let (Some(file), Some((from_hash, to_hash))) =
+                    (&mut current_file, &current_hashes)
+                {
                     file.diff_key = Some(DiffFileKey {
                         from_hash: from_hash.clone(),
                         to_hash: to_hash.clone(),
@@ -119,30 +123,29 @@ impl DiffParser {
                     file.new_path = Some(stripped.to_string());
                 }
             }
-            
+
             // Always append line to current content
             if current_file.is_some() {
                 current_content.push_str(line);
                 current_content.push('\n');
             }
         }
-        
+
         // Don't forget the last file
         if let Some(mut file) = current_file {
             file.content = current_content.clone();
             Self::calculate_diff_stats(&mut file, &current_content);
             file_diffs.push(file);
         }
-        
+
         file_diffs
     }
-    
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_parse_simple_diff() {
         let diff_content = r#"diff --git a/file1.rs b/file1.rs
@@ -155,13 +158,13 @@ index 1234567..abcdefg 100644
 +    println!("Hello, World!");
  }
 "#;
-        
+
         let diffs = DiffParser::parse(diff_content);
         assert_eq!(diffs.len(), 1);
         assert_eq!(diffs[0].filename, "file1.rs");
         assert!(diffs[0].content.contains("Hello, World!"));
     }
-    
+
     #[test]
     fn test_parse_multiple_files() {
         let diff_content = r#"diff --git a/file1.rs b/file1.rs
@@ -177,7 +180,7 @@ diff --git a/file2.rs b/file2.rs
 -another old
 +another new
 "#;
-        
+
         let diffs = DiffParser::parse(diff_content);
         assert_eq!(diffs.len(), 2);
         assert_eq!(diffs[0].filename, "file1.rs");
