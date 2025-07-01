@@ -59,7 +59,11 @@ impl Cli {
     pub fn get_operation_mode(&self) -> OperationMode {
         if let Some(command) = &self.command {
             match command {
-                Commands::Diff { target1, target2, cached } => {
+                Commands::Diff {
+                    target1,
+                    target2,
+                    cached,
+                } => {
                     if *cached {
                         OperationMode::GitCached
                     } else if let Some(target2) = target2 {
@@ -70,7 +74,9 @@ impl Cli {
                         }
                     } else {
                         // One target: compare with working directory or HEAD
-                        OperationMode::GitDiff { target: target1.clone() }
+                        OperationMode::GitDiff {
+                            target: target1.clone(),
+                        }
                     }
                 }
                 Commands::Status => OperationMode::GitStatus,
@@ -83,7 +89,9 @@ impl Cli {
             OperationMode::GitWorkingDirectory
         } else if self.targets.len() == 1 {
             // One target: compare with working directory or HEAD
-            OperationMode::GitDiff { target: self.targets[0].clone() }
+            OperationMode::GitDiff {
+                target: self.targets[0].clone(),
+            }
         } else if self.targets.len() == 2 {
             // Two targets: compare them
             OperationMode::Compare {
@@ -92,7 +100,9 @@ impl Cli {
             }
         } else {
             // Too many arguments
-            OperationMode::Invalid { reason: "Too many arguments provided".to_string() }
+            OperationMode::Invalid {
+                reason: "Too many arguments provided".to_string(),
+            }
         }
     }
 }
@@ -135,13 +145,13 @@ impl OperationMode {
         match self {
             OperationMode::GitWorkingDirectory => "Working directory changes".to_string(),
             OperationMode::GitCached => "Staged changes".to_string(),
-            OperationMode::GitDiff { target } => format!("Changes from {}", target),
+            OperationMode::GitDiff { target } => format!("Changes from {target}"),
             OperationMode::GitStatus => "Git status with diffs".to_string(),
             OperationMode::Compare { target1, target2 } => {
-                format!("Comparing {} with {}", target1, target2)
+                format!("Comparing {target1} with {target2}")
             }
             OperationMode::Completions { .. } => "Generating completions".to_string(),
-            OperationMode::Invalid { reason } => format!("Invalid: {}", reason),
+            OperationMode::Invalid { reason } => format!("Invalid: {reason}"),
         }
     }
 }
@@ -160,7 +170,7 @@ mod tests {
             config: None,
             verbose: false,
         };
-        
+
         match cli.get_operation_mode() {
             OperationMode::GitWorkingDirectory => (),
             _ => panic!("Expected GitWorkingDirectory mode"),
@@ -177,7 +187,7 @@ mod tests {
             config: None,
             verbose: false,
         };
-        
+
         match cli.get_operation_mode() {
             OperationMode::GitCached => (),
             _ => panic!("Expected GitCached mode"),
@@ -194,7 +204,7 @@ mod tests {
             config: None,
             verbose: false,
         };
-        
+
         match cli.get_operation_mode() {
             OperationMode::GitDiff { target } => assert_eq!(target, "branch1"),
             _ => panic!("Expected GitDiff mode"),
@@ -211,7 +221,7 @@ mod tests {
             config: None,
             verbose: false,
         };
-        
+
         match cli.get_operation_mode() {
             OperationMode::Compare { target1, target2 } => {
                 assert_eq!(target1, "branch1");

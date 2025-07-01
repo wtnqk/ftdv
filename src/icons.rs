@@ -73,4 +73,3 @@ pub fn get_directory_icon(expanded: bool) -> char {
         '\u{f114}' //  Closed folder
     }
 }
-

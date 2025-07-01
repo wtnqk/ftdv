@@ -1,7 +1,7 @@
-use anyhow::{anyhow, Context, Result};
-use std::process::Command;
-use std::path::Path;
 use crate::cli::OperationMode;
+use anyhow::{Context, Result, anyhow};
+use std::path::Path;
+use std::process::Command;
 
 /// Git command executor for getting diff data
 pub struct GitExecutor;
@@ -23,15 +23,9 @@ impl GitExecutor {
     /// Get diff output based on operation mode
     pub fn get_diff(&self, mode: &OperationMode) -> Result<String> {
         match mode {
-            OperationMode::GitWorkingDirectory => {
-                self.execute_git_diff(&["diff"])
-            }
-            OperationMode::GitCached => {
-                self.execute_git_diff(&["diff", "--cached"])
-            }
-            OperationMode::GitDiff { target } => {
-                self.execute_git_diff(&["diff", target])
-            }
+            OperationMode::GitWorkingDirectory => self.execute_git_diff(&["diff"]),
+            OperationMode::GitCached => self.execute_git_diff(&["diff", "--cached"]),
+            OperationMode::GitDiff { target } => self.execute_git_diff(&["diff", target]),
             OperationMode::GitStatus => {
                 // For status, we might want to show multiple diffs
                 self.execute_git_diff(&["diff"])
@@ -39,7 +33,7 @@ impl GitExecutor {
             OperationMode::Compare { target1, target2 } => {
                 // Check if both targets are git refs
                 if self.is_git_ref(target1)? && self.is_git_ref(target2)? {
-                    self.execute_git_diff(&["diff", &format!("{}..{}", target1, target2)])
+                    self.execute_git_diff(&["diff", &format!("{target1}..{target2}")])
                 } else {
                     // Fall back to regular diff for files/directories
                     self.execute_regular_diff(target1, target2)
@@ -48,9 +42,7 @@ impl GitExecutor {
             OperationMode::Completions { .. } => {
                 Err(anyhow!("Completions mode should not call get_diff"))
             }
-            OperationMode::Invalid { reason } => {
-                Err(anyhow!("Invalid operation mode: {}", reason))
-            }
+            OperationMode::Invalid { reason } => Err(anyhow!("Invalid operation mode: {}", reason)),
         }
     }
 
@@ -67,44 +59,45 @@ impl GitExecutor {
             OperationMode::GitDiff { target } => {
                 self.execute_git_name_only(&["diff", "--name-only", target])
             }
-            OperationMode::GitStatus => {
-                self.execute_git_name_only(&["diff", "--name-only"])
-            }
+            OperationMode::GitStatus => self.execute_git_name_only(&["diff", "--name-only"]),
             OperationMode::Compare { target1, target2 } => {
                 if self.is_git_ref(target1)? && self.is_git_ref(target2)? {
-                    self.execute_git_name_only(&["diff", "--name-only", &format!("{}..{}", target1, target2)])
+                    self.execute_git_name_only(&[
+                        "diff",
+                        "--name-only",
+                        &format!("{target1}..{target2}"),
+                    ])
                 } else {
                     // For file/directory comparison, return the file paths
                     Ok(vec![target1.clone(), target2.clone()])
                 }
             }
-            OperationMode::Completions { .. } => {
-                Err(anyhow!("Completions mode should not call get_changed_files"))
-            }
-            OperationMode::Invalid { reason } => {
-                Err(anyhow!("Invalid operation mode: {}", reason))
-            }
+            OperationMode::Completions { .. } => Err(anyhow!(
+                "Completions mode should not call get_changed_files"
+            )),
+            OperationMode::Invalid { reason } => Err(anyhow!("Invalid operation mode: {}", reason)),
         }
     }
 
     /// Get diff for a specific file
     pub fn get_file_diff(&self, mode: &OperationMode, file_path: &str) -> Result<String> {
         match mode {
-            OperationMode::GitWorkingDirectory => {
-                self.execute_git_diff(&["diff", "--", file_path])
-            }
+            OperationMode::GitWorkingDirectory => self.execute_git_diff(&["diff", "--", file_path]),
             OperationMode::GitCached => {
                 self.execute_git_diff(&["diff", "--cached", "--", file_path])
             }
             OperationMode::GitDiff { target } => {
                 self.execute_git_diff(&["diff", target, "--", file_path])
             }
-            OperationMode::GitStatus => {
-                self.execute_git_diff(&["diff", "--", file_path])
-            }
+            OperationMode::GitStatus => self.execute_git_diff(&["diff", "--", file_path]),
             OperationMode::Compare { target1, target2 } => {
                 if self.is_git_ref(target1)? && self.is_git_ref(target2)? {
-                    self.execute_git_diff(&["diff", &format!("{}..{}", target1, target2), "--", file_path])
+                    self.execute_git_diff(&[
+                        "diff",
+                        &format!("{target1}..{target2}"),
+                        "--",
+                        file_path,
+                    ])
                 } else {
                     // For file comparison, assume the file_path is one of the targets
                     self.execute_regular_diff(target1, target2)
@@ -113,9 +106,7 @@ impl GitExecutor {
             OperationMode::Completions { .. } => {
                 Err(anyhow!("Completions mode should not call get_file_diff"))
             }
-            OperationMode::Invalid { reason } => {
-                Err(anyhow!("Invalid operation mode: {}", reason))
-            }
+            OperationMode::Invalid { reason } => Err(anyhow!("Invalid operation mode: {}", reason)),
         }
     }
 
@@ -131,8 +122,7 @@ impl GitExecutor {
             return Err(anyhow!("Git diff failed: {}", stderr));
         }
 
-        String::from_utf8(output.stdout)
-            .context("Git diff output is not valid UTF-8")
+        String::from_utf8(output.stdout).context("Git diff output is not valid UTF-8")
     }
 
     /// Execute git command to get file names only
@@ -148,8 +138,7 @@ impl GitExecutor {
             return Err(anyhow!("Git diff --name-only failed: {}", stderr));
         }
 
-        let stdout = String::from_utf8(output.stdout)
-            .context("Git output is not valid UTF-8")?;
+        let stdout = String::from_utf8(output.stdout).context("Git output is not valid UTF-8")?;
 
         Ok(stdout
             .lines()
@@ -171,8 +160,7 @@ impl GitExecutor {
             return Err(anyhow!("Diff command failed: {}", stderr));
         }
 
-        String::from_utf8(output.stdout)
-            .context("Diff output is not valid UTF-8")
+        String::from_utf8(output.stdout).context("Diff output is not valid UTF-8")
     }
 
     /// Check if a string is a valid git ref

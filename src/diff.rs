@@ -16,7 +16,7 @@ impl DiffExecutor {
 mod tests {
     use super::*;
     use crate::config::DiffCommand;
-    
+
     #[test]
     fn test_diff_executor_new() {
         let cmd = DiffCommand::default();

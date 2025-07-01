@@ -1,6 +1,6 @@
 use ratatui::style::Color;
-use serde::{Deserialize, Serialize, Deserializer, Serializer};
 use serde::de::{self, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 
 // Custom Color type that can be serialized/deserialized from config
@@ -30,8 +30,8 @@ impl Serialize for ThemeColor {
             Color::LightMagenta => serializer.serialize_str("light_magenta"),
             Color::LightCyan => serializer.serialize_str("light_cyan"),
             Color::White => serializer.serialize_str("white"),
-            Color::Indexed(n) => serializer.serialize_str(&format!("color{}", n)),
-            Color::Rgb(r, g, b) => serializer.serialize_str(&format!("#{:02x}{:02x}{:02x}", r, g, b)),
+            Color::Indexed(n) => serializer.serialize_str(&format!("color{n}")),
+            Color::Rgb(r, g, b) => serializer.serialize_str(&format!("#{r:02x}{g:02x}{b:02x}")),
         }
     }
 }
@@ -77,7 +77,7 @@ impl Visitor<'_> for ThemeColorVisitor {
                 let b = u8::from_str_radix(&s[5..7], 16).map_err(de::Error::custom)?;
                 Color::Rgb(r, g, b)
             }
-            _ => return Err(de::Error::custom(format!("unknown color: {}", value))),
+            _ => return Err(de::Error::custom(format!("unknown color: {value}"))),
         };
         Ok(ThemeColor(color))
     }
@@ -112,24 +112,24 @@ pub struct ColorScheme {
     pub tree_selected_fg: ThemeColor,
     pub tree_directory: ThemeColor,
     pub tree_file: ThemeColor,
-    
+
     // File status colors
     pub status_added: ThemeColor,
     pub status_removed: ThemeColor,
     pub status_modified: ThemeColor,
-    
+
     // UI chrome colors
     pub border: ThemeColor,
     pub border_focused: ThemeColor,
     pub title: ThemeColor,
     pub status_bar_bg: ThemeColor,
     pub status_bar_fg: ThemeColor,
-    
+
     // Text colors
     pub text_primary: ThemeColor,
     pub text_secondary: ThemeColor,
     pub text_dim: ThemeColor,
-    
+
     // Background colors
     pub background: ThemeColor,
 }
@@ -150,29 +150,28 @@ impl ColorScheme {
             tree_selected_fg: ThemeColor(Color::Yellow),
             tree_directory: ThemeColor(Color::Blue),
             tree_file: ThemeColor(Color::White),
-            
+
             // File status colors
             status_added: ThemeColor(Color::Green),
             status_removed: ThemeColor(Color::Red),
             status_modified: ThemeColor(Color::Yellow),
-            
+
             // UI chrome colors
             border: ThemeColor(Color::DarkGray),
             border_focused: ThemeColor(Color::Cyan),
             title: ThemeColor(Color::Cyan),
             status_bar_bg: ThemeColor(Color::DarkGray),
             status_bar_fg: ThemeColor(Color::White),
-            
+
             // Text colors
             text_primary: ThemeColor(Color::White),
             text_secondary: ThemeColor(Color::Gray),
             text_dim: ThemeColor(Color::DarkGray),
-            
+
             // Background colors
             background: ThemeColor(Color::Black),
         }
     }
-    
 }
 
 /// Theme configuration
@@ -190,4 +189,3 @@ impl Default for Theme {
         }
     }
 }
-
