@@ -66,7 +66,7 @@ struct App {
     search_query: String,                        // Current search query
     filtered_file_tree_items: Vec<FileTreeItem>, // Filtered items for search
     // UI state
-    file_list_state: ListState,                  // For stateful file tree scrolling
+    file_list_state: ListState, // For stateful file tree scrolling
 }
 
 impl App {
