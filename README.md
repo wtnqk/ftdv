@@ -2,6 +2,9 @@
 
 ftdv (File Tree Diff Viewer) is a terminal-based diff viewer inspired by [diffnav](https://github.com/dlvhdr/diffnav) and [lazygit](https://github.com/jesseduffield/lazygit), built with [ratatui](https://github.com/ratatui-org/ratatui) in Rust. It combines diffnav's intuitive file navigation with lazygit's flexible diff tool configuration system, providing an interactive interface for viewing git diffs with support for various diff tools like delta, bat, ydiff, and difftastic.
 
+## about
+<img width="2056" alt="image" src="https://github.com/user-attachments/assets/43ab0c27-0764-4342-a049-fb4930463811" />
+
 ## Design Philosophy
 
 ftdv is a modern TUI diff pager focused on interactive git integration:
