@@ -1,0 +1,102 @@
+name: Build Docs 📝
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - README.md
+
+jobs:
+  deploy-readme:
+    name: Deploy README to GitHub Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create simple documentation site
+        run: |
+          mkdir -p public
+          cp README.md public/
+          
+          # Create a simple HTML page that renders the README
+          cat > public/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>ftdv - File Tree Diff Viewer</title>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <style>
+                  body { 
+                      font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+                      max-width: 800px; 
+                      margin: 0 auto; 
+                      padding: 20px; 
+                      line-height: 1.6; 
+                  }
+                  .header {
+                      text-align: center;
+                      margin-bottom: 30px;
+                      padding: 20px;
+                      background: #f6f8fa;
+                      border-radius: 8px;
+                  }
+                  .header h1 { margin: 0 0 10px 0; color: #333; }
+                  .header p { margin: 0; color: #666; }
+                  .nav { margin: 20px 0; text-align: center; }
+                  .nav a { 
+                      margin: 0 10px; 
+                      padding: 8px 16px;
+                      background: #0366d6;
+                      color: white;
+                      text-decoration: none;
+                      border-radius: 4px;
+                  }
+                  .nav a:hover { background: #0256cc; }
+                  iframe {
+                      width: 100%;
+                      min-height: 800px;
+                      border: none;
+                      background: white;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>🌳 ftdv</h1>
+                  <p>File Tree Diff Viewer - A terminal-based diff viewer built with Rust</p>
+              </div>
+              
+              <div class="nav">
+                  <a href="https://crates.io/crates/ftdv">📦 Crates.io</a>
+                  <a href="https://github.com/wtnqk/ftdv">🔗 GitHub</a>
+                  <a href="https://docs.rs/ftdv">📚 docs.rs</a>
+              </div>
+              
+              <p><strong>📖 Documentation:</strong> See <a href="https://github.com/wtnqk/ftdv/blob/main/README.md">README.md</a> for complete usage instructions.</p>
+              
+              <h2>🚀 Quick Install</h2>
+              <pre><code>cargo install ftdv</code></pre>
+              
+              <h2>💡 Quick Start</h2>
+              <pre><code>ftdv                    # View working directory changes
+ftdv --cached          # View staged changes  
+ftdv main feature      # Compare branches</code></pre>
+          </body>
+          </html>
+          EOF
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          publish_branch: gh-pages
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: Deploy documentation from README
