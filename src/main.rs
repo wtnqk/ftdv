@@ -27,6 +27,7 @@ use ratatui::{
     Frame, Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
+    widgets::ListState,
 };
 use std::io::{self, Read};
 use std::process::{Command, Stdio};
@@ -64,6 +65,8 @@ struct App {
     search_input_mode: bool,                     // Track if we're actively typing in search
     search_query: String,                        // Current search query
     filtered_file_tree_items: Vec<FileTreeItem>, // Filtered items for search
+    // UI state
+    file_list_state: ListState, // For stateful file tree scrolling
 }
 
 impl App {
@@ -120,6 +123,11 @@ impl App {
             search_input_mode: false,
             search_query: String::new(),
             filtered_file_tree_items: file_tree_items,
+            file_list_state: {
+                let mut state = ListState::default();
+                state.select(Some(0));
+                state
+            },
         })
     }
 
@@ -127,6 +135,7 @@ impl App {
         let current_items = self.get_current_file_tree_items();
         if !current_items.is_empty() && self.selected_index < current_items.len() - 1 {
             self.selected_index += 1;
+            self.file_list_state.select(Some(self.selected_index));
             self.update_diff_content();
         }
     }
@@ -134,6 +143,7 @@ impl App {
     fn select_previous(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
+            self.file_list_state.select(Some(self.selected_index));
             self.update_diff_content();
         }
     }
@@ -503,6 +513,7 @@ impl App {
 
     fn jump_to_top(&mut self) {
         self.selected_index = 0;
+        self.file_list_state.select(Some(self.selected_index));
         self.update_diff_content();
     }
 
@@ -510,6 +521,7 @@ impl App {
         let current_items = self.get_current_file_tree_items();
         if !current_items.is_empty() {
             self.selected_index = current_items.len() - 1;
+            self.file_list_state.select(Some(self.selected_index));
             self.update_diff_content();
         }
     }
@@ -563,6 +575,7 @@ impl App {
             self.search_query.clear();
             self.search_input_mode = true;
             self.selected_index = 0;
+            self.file_list_state.select(Some(self.selected_index));
             self.update_search_filter();
         } else {
             // Enter search mode for the first time
@@ -570,6 +583,7 @@ impl App {
             self.search_input_mode = true;
             self.search_query.clear();
             self.selected_index = 0;
+            self.file_list_state.select(Some(self.selected_index));
             self.update_search_filter();
         }
     }
@@ -579,6 +593,7 @@ impl App {
         self.search_input_mode = false;
         self.search_query.clear();
         self.selected_index = 0;
+        self.file_list_state.select(Some(self.selected_index));
         self.update_diff_content();
     }
 
@@ -617,6 +632,7 @@ impl App {
 
         // Reset selection and update diff content
         self.selected_index = 0;
+        self.file_list_state.select(Some(self.selected_index));
         self.update_diff_content();
     }
 
@@ -650,6 +666,7 @@ impl App {
         // Adjust selected index if needed
         if self.selected_index >= self.file_tree_items.len() {
             self.selected_index = self.file_tree_items.len().saturating_sub(1);
+            self.file_list_state.select(Some(self.selected_index));
         }
     }
 
@@ -1187,12 +1204,12 @@ mod tests {
                 diff_key: None,
             },
         ];
-        let app = App::new(config, file_diffs, OperationMode::GitWorkingDirectory).unwrap();
+        let mut app = App::new(config, file_diffs, OperationMode::GitWorkingDirectory).unwrap();
 
         terminal
             .draw(|f| {
                 let area = Rect::new(0, 0, 40, 20);
-                render_file_list(f, area, &app);
+                render_file_list(f, area, &mut app);
             })
             .unwrap();
 

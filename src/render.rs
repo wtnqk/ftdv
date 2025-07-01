@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
 };
 
-pub fn render_file_list(f: &mut Frame, area: Rect, app: &App) {
+pub fn render_file_list(f: &mut Frame, area: Rect, app: &mut App) {
     let available_width = area.width.saturating_sub(4) as usize; // Account for borders and padding
 
     // Get current items based on search mode
@@ -221,7 +221,7 @@ pub fn render_file_list(f: &mut Frame, area: Rect, app: &App) {
         )
         .style(Style::default().fg(app.theme.colors.text_primary.0));
 
-    f.render_widget(file_list, area);
+    f.render_stateful_widget(file_list, area, &mut app.file_list_state);
 }
 
 pub fn render_diff_content(f: &mut Frame, area: Rect, app: &mut App) {
