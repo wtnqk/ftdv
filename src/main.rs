@@ -1204,12 +1204,12 @@ mod tests {
                 diff_key: None,
             },
         ];
-        let app = App::new(config, file_diffs, OperationMode::GitWorkingDirectory).unwrap();
+        let mut app = App::new(config, file_diffs, OperationMode::GitWorkingDirectory).unwrap();
 
         terminal
             .draw(|f| {
                 let area = Rect::new(0, 0, 40, 20);
-                render_file_list(f, area, &app);
+                render_file_list(f, area, &mut app);
             })
             .unwrap();
 
