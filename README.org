@@ -72,24 +72,24 @@ ftdv completions bash > ftdv.bash
 *** Navigation
 | Key        | Action                        |
 |------------+-------------------------------|
-| =j=/=↓=    | Move down in file list        |
-| =k=/=↑=    | Move up in file list          |
+| =j= / =↓=  | Move down in file list        |
+| =k= / =↑=  | Move up in file list          |
 | =g=        | Jump to top of file list      |
 | =G=        | Jump to bottom of file list   |
 
 *** Diff Content Scrolling
-| Key            | Action                      |
-|----------------+-----------------------------|
-| =h=/=←=        | Scroll diff left (5 chars)  |
-| =l=/=→=        | Scroll diff right (5 chars) |
-| =H=            | Scroll diff left (20 chars) |
-| =L=            | Scroll diff right (20 chars)|
-| =e=/=J=        | Scroll diff down (1 line)   |
-| =y=/=K=        | Scroll diff up (1 line)     |
-| =d=/=PageDown= | Scroll diff down (10 lines) |
-| =u=/=PageUp=   | Scroll diff up (10 lines)   |
-| =f=            | Scroll diff down (20 lines) |
-| =b=            | Scroll diff up (20 lines)   |
+| Key              | Action                      |
+|------------------+-----------------------------|
+| =h= / =←=        | Scroll diff left (5 chars)  |
+| =l= / =→=        | Scroll diff right (5 chars) |
+| =H=              | Scroll diff left (20 chars) |
+| =L=              | Scroll diff right (20 chars)|
+| =e= / =J=        | Scroll diff down (1 line)   |
+| =y= / =K=        | Scroll diff up (1 line)     |
+| =d= / =PageDown= | Scroll diff down (10 lines) |
+| =u= / =PageUp=   | Scroll diff up (10 lines)   |
+| =f=              | Scroll diff down (20 lines) |
+| =b=              | Scroll diff up (20 lines)   |
 
 *** File Operations
 | Key     | Action                      |
@@ -288,7 +288,6 @@ git:
 
 ftdv stores persistent data in =~/.local/share/ftdv/=:
 - Checked file states are preserved between sessions
-- States are keyed by commit hashes and file paths
 
 * Troubleshooting
 
@@ -308,18 +307,7 @@ ftdv stores persistent data in =~/.local/share/ftdv/=:
 - Ensure =colorArg: "always"= is set
 - Some tools may need additional color flags
 
-** Debug Mode
-
-Set the =RUST_LOG= environment variable for debugging:
-
-#+begin_src bash
-RUST_LOG=debug ftdv
-#+end_src
-
 * Contributing
 
 Contributions are welcome! Please feel free to submit issues and pull requests.
 
-* License
-
-[Insert your license here]
