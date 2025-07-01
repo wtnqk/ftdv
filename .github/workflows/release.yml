@@ -20,12 +20,14 @@ jobs:
     
     - name: Verify version
       run: |
-        cargo_version=$(grep "^version" Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+        # Use cargo metadata for more robust version extraction
+        cargo_version=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].version')
         tag_version="${GITHUB_REF#refs/tags/v}"
         if [ "$cargo_version" != "$tag_version" ]; then
           echo "Error: Cargo.toml version ($cargo_version) doesn't match tag version ($tag_version)"
           exit 1
         fi
+        echo "✅ Version verified: $cargo_version"
         
     - name: Run tests
       run: cargo test --all-features --verbose
@@ -41,6 +43,8 @@ jobs:
 
     - name: Publish to Crates.io
       run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+      env:
+        CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
   # Second: Create GitHub Release
   create-release:

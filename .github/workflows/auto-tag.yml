@@ -35,7 +35,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         id: auto_bump
         run: |
-          CURRENT_VERSION=$(grep "^version" Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          # Use cargo metadata for robust version extraction
+          CURRENT_VERSION=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].version')
           echo "original_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           
           # Parse semantic version
@@ -63,14 +64,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Cargo.toml
-          git commit -m "chore: bump version to v$NEW_VERSION (${{ github.event.inputs.version_type }})"
+          git commit -m "chore: bump version to $NEW_VERSION (${{ github.event.inputs.version_type }})"
           git push origin main
 
       - name: Check if version changed
         id: version_check
         run: |
-          # Get current version
-          CURRENT_VERSION=$(grep "^version" Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          # Get current version using cargo metadata
+          CURRENT_VERSION=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].version')
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -80,7 +81,7 @@ jobs:
           else
             # Check if version changed compared to previous commit
             git checkout HEAD~1 -- Cargo.toml 2>/dev/null || echo "No previous Cargo.toml"
-            PREVIOUS_VERSION=$(grep "^version" Cargo.toml | sed 's/.*"\(.*\)".*/\1/' 2>/dev/null || echo "none")
+            PREVIOUS_VERSION=$(cargo metadata --format-version 1 --no-deps 2>/dev/null | jq -r '.packages[0].version' 2>/dev/null || echo "none")
             git checkout HEAD -- Cargo.toml
             
             echo "previous_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT

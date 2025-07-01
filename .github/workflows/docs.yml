@@ -76,7 +76,7 @@ jobs:
                   <a href="https://docs.rs/ftdv">📚 docs.rs</a>
               </div>
               
-              <p><strong>📖 Documentation:</strong> See <a href="README.md">README.md</a> for complete usage instructions.</p>
+              <p><strong>📖 Documentation:</strong> See <a href="https://github.com/wtnqk/ftdv/blob/main/README.md">README.md</a> for complete usage instructions.</p>
               
               <h2>🚀 Quick Install</h2>
               <pre><code>cargo install ftdv</code></pre>
