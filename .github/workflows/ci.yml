@@ -109,7 +109,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
+    - name: Cache cargo-audit
+      uses: actions/cache@v3
+      with:
+        path: ${{ runner.tool_cache }}/cargo-audit
+        key: cargo-audit-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
     - name: Install cargo-audit
-      run: cargo install cargo-audit
+      run: |
+        if ! command -v cargo-audit &> /dev/null; then
+          cargo install cargo-audit --root ${{ runner.tool_cache }}/cargo-audit;
+        fi
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
     - name: Run cargo audit
       run: cargo audit
