@@ -108,6 +108,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: rustsec/audit-check@v2
+    - uses: dtolnay/rust-toolchain@stable
+    - name: Cache cargo-audit
+      uses: actions/cache@v3
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        path: ~/.cargo/bin/cargo-audit
+        key: cargo-audit-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install cargo-audit
+      run: |
+        if ! command -v cargo-audit &> /dev/null; then
+          cargo install cargo-audit
+        fi
+    - name: Run cargo audit
+      run: cargo audit
