@@ -34,12 +34,18 @@ jobs:
       run: |
         # Use cargo metadata for more robust version extraction
         cargo_version=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].version')
-        tag_version="${GITHUB_REF#refs/tags/v}"
-        if [ "$cargo_version" != "$tag_version" ]; then
-          echo "Error: Cargo.toml version ($cargo_version) doesn't match tag version ($tag_version)"
-          exit 1
+        
+        # Skip version check for workflow_dispatch
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "✅ Manual run - using version from Cargo.toml: $cargo_version"
+        else
+          tag_version="${GITHUB_REF#refs/tags/v}"
+          if [ "$cargo_version" != "$tag_version" ]; then
+            echo "Error: Cargo.toml version ($cargo_version) doesn't match tag version ($tag_version)"
+            exit 1
+          fi
+          echo "✅ Version verified: $cargo_version"
         fi
-        echo "✅ Version verified: $cargo_version"
         
     - name: Run tests
       run: cargo test --all-features --verbose
@@ -67,9 +73,19 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
-    - name: Get version from tag
+    - uses: actions/checkout@v4
+    
+    - name: Get version from tag or Cargo.toml
       id: get_version
-      run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          # For manual runs, get version from Cargo.toml
+          version=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].version')
+          echo "version=$version" >> $GITHUB_OUTPUT
+        else
+          # For tag pushes, extract from tag
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        fi
     
     - name: Create Release
       id: create_release
@@ -77,7 +93,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
+        tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', steps.get_version.outputs.version) || github.ref }}
         release_name: Release v${{ steps.get_version.outputs.version }}
         draft: false
         prerelease: false
