@@ -83,8 +83,8 @@ jobs:
               
               <h2>💡 Quick Start</h2>
               <pre><code>ftdv                    # View working directory changes
-ftdv --cached          # View staged changes  
-ftdv main feature      # Compare branches</code></pre>
+              ftdv --cached          # View staged changes  
+              ftdv main feature      # Compare branches</code></pre>
           </body>
           </html>
           EOF
