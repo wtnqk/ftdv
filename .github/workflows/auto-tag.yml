@@ -1,21 +1,6 @@
 name: Auto Tag on Version Change
 
 on:
-  workflow_dispatch:
-    inputs:
-      version_type:
-        description: 'Version bump type'
-        required: true
-        default: 'patch'
-        type: choice
-        options:
-        - patch
-        - minor
-        - major
-      force:
-        description: 'Force create tag even if version unchanged'
-        default: false
-        type: boolean
   push:
     branches: [main]
     paths:
@@ -31,42 +16,6 @@ jobs:
           fetch-depth: 2
           token: ${{ secrets.AUTO_TAG_TOKEN || secrets.GITHUB_TOKEN }}  # Use PAT to trigger release workflow
 
-      - name: Auto-bump version (workflow_dispatch only)
-        if: github.event_name == 'workflow_dispatch'
-        id: auto_bump
-        run: |
-          # Use cargo metadata for robust version extraction
-          CURRENT_VERSION=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].version')
-          echo "original_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          
-          # Parse semantic version
-          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
-          
-          case "${{ github.event.inputs.version_type }}" in
-            "major")
-              NEW_VERSION="$((major + 1)).0.0"
-              ;;
-            "minor") 
-              NEW_VERSION="$major.$((minor + 1)).0"
-              ;;
-            "patch")
-              NEW_VERSION="$major.$minor.$((patch + 1))"
-              ;;
-          esac
-          
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "🔄 Auto-bumping version: $CURRENT_VERSION → $NEW_VERSION (${{ github.event.inputs.version_type }})"
-          
-          # Update Cargo.toml
-          sed -i "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml
-          
-          # Commit the version bump
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Cargo.toml
-          git commit -m "chore: bump version to $NEW_VERSION (${{ github.event.inputs.version_type }})"
-          git push origin main
-
       - name: Check if version changed
         id: version_check
         run: |
@@ -74,25 +23,19 @@ jobs:
           CURRENT_VERSION=$(cargo metadata --format-version 1 --no-deps | jq -r '.packages[0].version')
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          # Check if version changed compared to previous commit
+          git checkout HEAD~1 -- Cargo.toml 2>/dev/null || echo "No previous Cargo.toml"
+          PREVIOUS_VERSION=$(cargo metadata --format-version 1 --no-deps 2>/dev/null | jq -r '.packages[0].version' 2>/dev/null || echo "0.0.0")
+          git checkout HEAD -- Cargo.toml
+          
+          echo "previous_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+          
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
             echo "version_changed=true" >> $GITHUB_OUTPUT
-            echo "previous_version=${{ steps.auto_bump.outputs.original_version }}" >> $GITHUB_OUTPUT
-            echo "🔄 Version auto-bumped: ${{ steps.auto_bump.outputs.original_version }} → $CURRENT_VERSION"
+            echo "🔄 Version changed: $PREVIOUS_VERSION → $CURRENT_VERSION"
           else
-            # Check if version changed compared to previous commit
-            git checkout HEAD~1 -- Cargo.toml 2>/dev/null || echo "No previous Cargo.toml"
-            PREVIOUS_VERSION=$(cargo metadata --format-version 1 --no-deps 2>/dev/null | jq -r '.packages[0].version' 2>/dev/null || echo "none")
-            git checkout HEAD -- Cargo.toml
-            
-            echo "previous_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
-            
-            if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
-              echo "version_changed=true" >> $GITHUB_OUTPUT
-              echo "🔄 Version changed: $PREVIOUS_VERSION → $CURRENT_VERSION"
-            else
-              echo "version_changed=false" >> $GITHUB_OUTPUT
-              echo "ℹ️ Version unchanged: $CURRENT_VERSION"
-            fi
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ Version unchanged: $CURRENT_VERSION"
           fi
 
       - name: Check if tag already exists
@@ -121,18 +64,17 @@ jobs:
       - name: Summary
         run: |
           echo "## 🏷️ Auto Tag Summary" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "- **Trigger**: 🎛️ Manual (${{ github.event.inputs.version_type }} bump)" >> $GITHUB_STEP_SUMMARY
-            echo "- **Original Version**: ${{ steps.auto_bump.outputs.original_version }}" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- **Trigger**: 🤖 Automatic (Cargo.toml change)" >> $GITHUB_STEP_SUMMARY
-            echo "- **Previous Version**: ${{ steps.version_check.outputs.previous_version }}" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "- **Trigger**: 🤖 Automatic (Cargo.toml change)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Previous Version**: ${{ steps.version_check.outputs.previous_version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Current Version**: ${{ steps.version_check.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Version Changed**: ${{ steps.version_check.outputs.version_changed }}" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.version_check.outputs.version_changed }}" = "true" ]; then
-            echo "- **Tag Created**: v${{ steps.version_check.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **Release Status**: 🚀 Auto-release triggered" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ steps.tag_check.outputs.tag_exists }}" = "false" ]; then
+              echo "- **Tag Created**: v${{ steps.version_check.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+              echo "- **Release Status**: 🚀 Auto-release will be triggered" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- **Action**: ⚠️ Tag already exists, skipped" >> $GITHUB_STEP_SUMMARY
+            fi
           else
             echo "- **Action**: ℹ️ No tag created (version unchanged)" >> $GITHUB_STEP_SUMMARY
           fi
