@@ -11,7 +11,7 @@ jobs:
     name: Create Tag on Version Change
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 2
           token: ${{ secrets.AUTO_TAG_TOKEN || secrets.GITHUB_TOKEN }}  # Use PAT to trigger release workflow
