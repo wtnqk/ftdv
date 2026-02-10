@@ -14,12 +14,15 @@ use crate::config::{Config, DiffCommandType};
 use crate::git::GitExecutor;
 use crate::parser::{DiffFileKey, DiffParser, FileDiff};
 use crate::persistence::PersistenceManager;
-use crate::render::{render_diff_content, render_file_list, render_search_box, render_status_line};
+use crate::render::{
+    render_diff_content, render_file_list, render_search_box, render_status_line,
+    render_warning_bar,
+};
 use crate::theme::Theme;
 use crate::tree::{FileTreeBuilder, FileTreeItem};
 use anyhow::Result;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -67,6 +70,7 @@ struct App {
     filtered_file_tree_items: Vec<FileTreeItem>, // Filtered items for search
     // UI state
     file_list_state: ListState, // For stateful file tree scrolling
+    warning_message: Option<String>, // Warning to display in the warning bar below the diff pane
 }
 
 impl App {
@@ -75,14 +79,18 @@ impl App {
         file_diffs: Vec<FileDiff>,
         operation_mode: OperationMode,
     ) -> Result<Self> {
-        let diff_output = if file_diffs.is_empty() {
-            String::from("No diff content available")
-        } else {
-            file_diffs[0].content.clone()
-        };
-
         let file_tree_items = FileTreeBuilder::build_file_tree(&file_diffs);
         let theme = config.theme.clone();
+
+        let diff_output = if file_tree_items.is_empty() {
+            String::from("No diff content available")
+        } else if file_tree_items[0].is_directory {
+            format!("Directory: {}", file_tree_items[0].full_path)
+        } else if let Some(ref file_diff) = file_tree_items[0].file_diff {
+            file_diff.content.clone()
+        } else {
+            String::from("No diff content available")
+        };
 
         // Initialize persistence manager
         let persistence_manager = PersistenceManager::new()?;
@@ -128,6 +136,7 @@ impl App {
                 state.select(Some(0));
                 state
             },
+            warning_message: None,
         })
     }
 
@@ -202,10 +211,11 @@ impl App {
                 match self.execute_external_diff_tool_with_width(&self.diff_output, width) {
                     Ok(processed_output) => {
                         self.diff_output = processed_output;
+                        self.warning_message = None;
                     }
                     Err(e) => {
-                        // Log error but continue with original output
-                        eprintln!("Warning: Failed to process with diff tool: {e}");
+                        self.warning_message =
+                            Some(format!("Failed to process with diff tool: {e}"));
                     }
                 }
             }
@@ -553,7 +563,8 @@ impl App {
                             .persistence_manager
                             .save_check_state(diff_key, is_now_checked)
                         {
-                            eprintln!("Warning: Failed to save check state: {e}");
+                            self.warning_message =
+                                Some(format!("Failed to save check state: {e}"));
                         }
                     }
                 }
@@ -697,9 +708,11 @@ impl App {
                         match self.execute_external_diff_tool_with_width(&base_diff, Some(width)) {
                             Ok(processed_output) => {
                                 self.diff_output = processed_output;
+                                self.warning_message = None;
                             }
                             Err(e) => {
-                                eprintln!("Warning: Failed to refresh diff with width: {e}");
+                                self.warning_message =
+                                    Some(format!("Failed to refresh diff with width: {e}"));
                             }
                         }
                     }
@@ -738,9 +751,12 @@ impl App {
                         ) {
                             Ok(processed_output) => {
                                 self.diff_output = processed_output;
+                                self.warning_message = None;
                             }
                             Err(e) => {
-                                eprintln!("Warning: Failed to refresh diff with area width: {e}");
+                                self.warning_message = Some(format!(
+                                    "Failed to refresh diff with area width: {e}"
+                                ));
                             }
                         }
                     }
@@ -1010,6 +1026,9 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, mut app: Ap
         // Use poll to handle the case where stdin might not be available
         if event::poll(std::time::Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Release {
+                    continue;
+                }
                 match key.code {
                     // Quit or exit search mode
                     KeyCode::Char('q') => {
@@ -1118,7 +1137,9 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, mut app: Ap
 }
 
 fn ui(f: &mut Frame, app: &mut App) {
-    // Main horizontal split: file list (30%) and diff content area (70%)
+    let has_warning = app.warning_message.is_some();
+
+    // Main horizontal split: file list (20%) and diff content area (80%)
     let main_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(20), Constraint::Percentage(80)])
@@ -1137,14 +1158,29 @@ fn ui(f: &mut Frame, app: &mut App) {
         render_file_list(f, main_chunks[0], app);
     }
 
-    // Right side vertical split: status line and diff content
+    // Right side vertical split: status line, diff content, and optional warning
+    let right_constraints: Vec<Constraint> = if has_warning {
+        vec![
+            Constraint::Length(3),
+            Constraint::Min(0),
+            Constraint::Length(3),
+        ]
+    } else {
+        vec![Constraint::Length(3), Constraint::Min(0)]
+    };
+
     let right_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .constraints(right_constraints)
         .split(main_chunks[1]);
 
     render_status_line(f, right_chunks[0], app);
     render_diff_content(f, right_chunks[1], app);
+
+    // Render warning bar below diff content if present
+    if app.warning_message.is_some() {
+        render_warning_bar(f, right_chunks[2], app);
+    }
 }
 
 #[cfg(test)]
@@ -1238,6 +1274,22 @@ mod tests {
         let content = buffer_to_string(buffer);
         assert!(content.contains("Diff Content"));
         assert!(content.contains("No diff content available"));
+    }
+
+    #[test]
+    fn test_render_warning_bar() {
+        let backend = TestBackend::new(100, 50);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let config = Config::default();
+        let mut app = App::new(config, vec![], OperationMode::GitWorkingDirectory).unwrap();
+        app.warning_message = Some("Failed to process with diff tool: program not found".into());
+
+        terminal.draw(|f| ui(f, &mut app)).unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let content = buffer_to_string(buffer);
+        assert!(content.contains("Warning"));
+        assert!(content.contains("Failed to process with diff tool"));
     }
 
     fn buffer_to_string(buffer: &Buffer) -> String {

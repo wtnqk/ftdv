@@ -404,3 +404,20 @@ pub fn render_search_box(f: &mut Frame, area: Rect, app: &App) {
 
     f.render_widget(search_box, area);
 }
+
+pub fn render_warning_bar(f: &mut Frame, area: Rect, app: &App) {
+    if let Some(ref warning) = app.warning_message {
+        let warning_widget = Paragraph::new(Span::styled(
+            format!(" {warning}"),
+            Style::default().fg(app.theme.colors.status_bar_fg.0),
+        ))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Warning")
+                .style(Style::default().fg(app.theme.colors.warning_border.0)),
+        )
+        .style(Style::default().fg(app.theme.colors.status_bar_fg.0));
+        f.render_widget(warning_widget, area);
+    }
+}

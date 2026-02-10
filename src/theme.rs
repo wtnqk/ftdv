@@ -132,6 +132,14 @@ pub struct ColorScheme {
 
     // Background colors
     pub background: ThemeColor,
+
+    // Warning colors
+    #[serde(default = "default_warning_border")]
+    pub warning_border: ThemeColor,
+}
+
+fn default_warning_border() -> ThemeColor {
+    ThemeColor(Color::Yellow)
 }
 
 impl Default for ColorScheme {
@@ -170,6 +178,9 @@ impl ColorScheme {
 
             // Background colors
             background: ThemeColor(Color::Black),
+
+            // Warning colors
+            warning_border: ThemeColor(Color::Yellow),
         }
     }
 }
